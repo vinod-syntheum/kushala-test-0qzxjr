@@ -1,0 +1,139 @@
+version: 2
+updates:
+  # Backend NPM dependencies configuration
+  - package-ecosystem: "npm"
+    directory: "/src/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    versioning-strategy: "auto"
+    labels:
+      - "dependencies"
+      - "backend"
+      - "security"
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: "scope"
+    groups:
+      typescript-eslint:
+        patterns:
+          - "@typescript-eslint/*"
+        update-types:
+          - "minor"
+          - "patch"
+      aws-sdk:
+        patterns:
+          - "@aws-sdk/*"
+        update-types:
+          - "minor"
+          - "patch"
+      database:
+        patterns:
+          - "typeorm"
+          - "pg"
+          - "mongodb"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-type: "development"
+        update-types:
+          - "version-update:semver-major"
+    security-updates-only: false
+    open-pull-requests-limit: 10
+    pull-request-branch-name:
+      separator: "-"
+    rebase-strategy: "auto"
+
+  # Frontend NPM dependencies configuration
+  - package-ecosystem: "npm"
+    directory: "/src/web"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    versioning-strategy: "auto"
+    labels:
+      - "dependencies"
+      - "frontend"
+      - "security"
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: "scope"
+    groups:
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react*"
+          - "next"
+        update-types:
+          - "minor"
+          - "patch"
+      testing-library:
+        patterns:
+          - "@testing-library/*"
+        update-types:
+          - "minor"
+          - "patch"
+      ui-components:
+        patterns:
+          - "tailwindcss"
+          - "@headlessui/*"
+          - "@heroicons/*"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-type: "development"
+        update-types:
+          - "version-update:semver-major"
+    security-updates-only: false
+    open-pull-requests-limit: 10
+    pull-request-branch-name:
+      separator: "-"
+    rebase-strategy: "auto"
+
+  # Docker dependencies configuration
+  - package-ecosystem: "docker"
+    directory: "/infrastructure/docker"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "security"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    pull-request-branch-name:
+      separator: "-"
+    rebase-strategy: "auto"
+    open-pull-requests-limit: 5
+
+  # Terraform dependencies configuration
+  - package-ecosystem: "terraform"
+    directory: "/infrastructure/terraform"
+    schedule:
+      interval: "monthly"
+      time: "09:00"
+      timezone: "UTC"
+    labels:
+      - "dependencies"
+      - "infrastructure"
+      - "security"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    pull-request-branch-name:
+      separator: "-"
+    rebase-strategy: "auto"
+    open-pull-requests-limit: 3
