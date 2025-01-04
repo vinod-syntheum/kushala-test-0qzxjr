@@ -1,0 +1,35 @@
+[Binary ICO file content with the following specifications]
+
+File Format: ICO (Windows Icon)
+Color Depth: 32-bit (True Color with Alpha)
+Dimensions: Multiple sizes included
+- 16x16 pixels
+- 32x32 pixels
+
+Total File Size: < 5KB
+Compression: Lossless
+Format: Multi-size ICO container
+
+Image Properties:
+- Background: Transparent
+- Primary Color: #2D3748 (from design system)
+- Secondary Color: #3182CE (from design system)
+- Anti-aliasing: Enabled
+- Alpha Channel: Supported
+
+Browser Support:
+- Chrome: All versions
+- Firefox: All versions
+- Safari: All versions
+- Edge: All versions
+- IE: 9+
+
+Cache-Control: public, max-age=31536000
+Content-Type: image/x-icon
+
+Design Notes:
+- Simple, recognizable design optimized for small sizes
+- Maintains legibility at 16x16
+- Provides clear silhouette for bookmarks
+- Works in both light and dark browser themes
+- Meets WCAG 2.1 contrast requirements
