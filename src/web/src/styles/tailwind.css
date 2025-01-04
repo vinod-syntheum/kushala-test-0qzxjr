@@ -1,0 +1,136 @@
+/* tailwind.css - Core Tailwind CSS implementation with design system integration */
+/* Dependencies: */
+/* tailwindcss: ^3.x */
+/* @tailwindcss/forms: ^0.5.x */
+/* @tailwindcss/typography: ^0.5.x */
+
+/* Import base styles and CSS variables */
+@import './globals.css';
+
+/* Inject Tailwind's base styles */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base Layer Extensions */
+@layer base {
+  /* Enhanced Fluid Typography System */
+  .text-xs { font-size: clamp(12px, 0.75rem, 14px); }
+  .text-sm { font-size: clamp(14px, 0.875rem, 16px); }
+  .text-base { font-size: clamp(16px, 1rem, 18px); }
+  .text-lg { font-size: clamp(18px, 1.125rem, 20px); }
+  .text-xl { font-size: clamp(20px, 1.25rem, 24px); }
+  .text-2xl { font-size: clamp(24px, 1.5rem, 28px); }
+  .text-3xl { font-size: clamp(30px, 1.875rem, 32px); }
+  .text-4xl { font-size: clamp(36px, 2.25rem, 40px); }
+  .text-5xl { font-size: clamp(40px, 2.5rem, 48px); }
+
+  /* Font Family Utilities */
+  .font-primary { font-family: var(--font-primary); }
+  .font-secondary { font-family: var(--font-secondary); }
+}
+
+/* Component Layer Extensions */
+@layer components {
+  /* Enhanced Button System */
+  .btn-primary {
+    @apply bg-accent text-white px-6 py-3 rounded font-medium
+    transition-colors duration-150 ease-in-out
+    hover:bg-accent-hover focus-visible:outline-2
+    focus-visible:outline-accent focus-visible:outline-offset-2
+    disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+
+  /* Form Input Enhancements */
+  .form-input {
+    @apply border border-secondary rounded px-4 py-3 text-base
+    transition-colors duration-150 ease-in-out
+    focus:border-accent focus:outline-2 focus:outline-accent
+    focus:outline-offset-2 disabled:opacity-60
+    disabled:cursor-not-allowed;
+  }
+
+  /* Card Component */
+  .card {
+    @apply bg-white rounded-lg shadow-md p-6
+    border border-gray-200 transition-shadow
+    hover:shadow-lg dark:bg-gray-800
+    dark:border-gray-700;
+  }
+}
+
+/* Utility Layer Extensions */
+@layer utilities {
+  /* Enhanced Spacing System */
+  .p-base { padding: var(--spacing-base); }
+  .p-grid { padding: var(--spacing-grid); }
+  .p-grid-lg { padding: calc(var(--spacing-grid) * 2); }
+  .p-grid-xl { padding: calc(var(--spacing-grid) * 3); }
+  
+  .m-base { margin: var(--spacing-base); }
+  .m-grid { margin: var(--spacing-grid); }
+  .m-grid-lg { margin: calc(var(--spacing-grid) * 2); }
+  .m-grid-xl { margin: calc(var(--spacing-grid) * 3); }
+
+  /* Enhanced Color System */
+  .bg-primary { background-color: var(--primary-color); }
+  .bg-primary-hover { background-color: color-mix(in srgb, var(--primary-color), black 10%); }
+  .bg-secondary { background-color: var(--secondary-color); }
+  .bg-secondary-hover { background-color: color-mix(in srgb, var(--secondary-color), black 10%); }
+  .bg-accent { background-color: var(--accent-color); }
+  .bg-accent-hover { background-color: color-mix(in srgb, var(--accent-color), black 10%); }
+  .bg-error { background-color: var(--error-color); }
+  .bg-error-hover { background-color: color-mix(in srgb, var(--error-color), black 10%); }
+}
+
+/* Responsive Container Configurations */
+@media (min-width: 320px) {
+  .container {
+    @apply px-4 max-w-full;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    @apply px-8 max-w-[768px];
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    @apply px-12 max-w-[1280px];
+  }
+}
+
+/* Accessibility Enhancements */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    @apply transition-none animate-none;
+  }
+}
+
+/* Dark Mode Optimizations */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+
+  .card {
+    @apply bg-gray-800 border-gray-700;
+  }
+
+  .form-input {
+    @apply bg-gray-700 border-gray-600 text-white;
+  }
+}
+
+/* Print Optimizations */
+@media print {
+  .container {
+    @apply max-w-none p-0;
+  }
+
+  .card {
+    @apply shadow-none border-none;
+  }
+}
