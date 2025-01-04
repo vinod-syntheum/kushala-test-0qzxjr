@@ -1,0 +1,227 @@
+/* builder.css - v1.0.0 */
+/* Dependencies: */
+/* tailwindcss: ^3.x */
+/* @tailwindcss/forms: ^0.5.x */
+
+/* Import base styles and design system */
+@import './globals.css';
+@import './tailwind.css';
+
+/* Root Variables for Builder Interface */
+:root {
+  --builder-grid-size: 8px;
+  --builder-component-gap: 16px;
+  --builder-panel-width: 320px;
+  --builder-canvas-padding: 24px;
+  --builder-dropzone-height: 4px;
+  --builder-handle-size: 24px;
+  --builder-transition-duration: 0.2s;
+  --builder-transition-timing: ease;
+  --builder-focus-ring: 0 0 0 2px var(--accent-color);
+  --builder-shadow-hover: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Main Builder Container */
+.builder-container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--background-light);
+  contain: strict;
+  position: relative;
+  z-index: 1;
+}
+
+/* Layout Components */
+.builder-sidebar {
+  width: var(--builder-panel-width);
+  border-right: 1px solid var(--secondary-color);
+  overflow-y: auto;
+  background: white;
+  z-index: 10;
+  contain: content;
+  will-change: transform;
+  transition: transform var(--builder-transition-duration) var(--builder-transition-timing);
+}
+
+.builder-canvas {
+  flex: 1;
+  padding: var(--builder-canvas-padding);
+  overflow: auto;
+  position: relative;
+  contain: layout style paint;
+  will-change: scroll-position;
+  scroll-behavior: smooth;
+}
+
+.builder-properties {
+  width: var(--builder-panel-width);
+  border-left: 1px solid var(--secondary-color);
+  overflow-y: auto;
+  background: white;
+  z-index: 10;
+  contain: content;
+  will-change: transform;
+}
+
+/* Component Styling */
+.builder-component {
+  position: relative;
+  margin: var(--builder-component-gap) 0;
+  border: 1px solid transparent;
+  transition: all var(--builder-transition-duration) var(--builder-transition-timing);
+  cursor: pointer;
+  contain: layout style;
+  will-change: transform, opacity;
+  user-select: none;
+  touch-action: none;
+  aria-grabbed: false;
+}
+
+.builder-component:hover {
+  border-color: var(--accent-color);
+  box-shadow: var(--builder-shadow-hover);
+}
+
+.builder-component.selected {
+  border-color: var(--accent-color);
+  box-shadow: var(--builder-focus-ring);
+  aria-grabbed: true;
+}
+
+/* Drag and Drop Interaction */
+.builder-dropzone {
+  height: var(--builder-dropzone-height);
+  margin: calc(var(--builder-component-gap) / 2) 0;
+  background: transparent;
+  transition: all var(--builder-transition-duration) var(--builder-transition-timing);
+  contain: layout style;
+  will-change: height, background-color;
+  border-radius: 2px;
+  aria-dropeffect: move;
+}
+
+.builder-dropzone.active {
+  height: var(--builder-component-gap);
+  background: var(--accent-color);
+  opacity: 0.3;
+  transform: scaleY(1.1);
+}
+
+.builder-handle {
+  position: absolute;
+  top: 50%;
+  left: -32px;
+  width: var(--builder-handle-size);
+  height: var(--builder-handle-size);
+  transform: translateY(-50%);
+  cursor: move;
+  opacity: 0;
+  transition: opacity var(--builder-transition-duration) var(--builder-transition-timing);
+  background: var(--secondary-color);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  aria-label: "Drag to reorder";
+  role: button;
+  tabindex: 0;
+}
+
+/* Preview Mode Styles */
+.preview-mobile {
+  max-width: 320px;
+  margin: 0 auto;
+  transition: max-width var(--builder-transition-duration) var(--builder-transition-timing);
+  contain: layout style;
+  will-change: max-width;
+}
+
+.preview-tablet {
+  max-width: 768px;
+  margin: 0 auto;
+  transition: max-width var(--builder-transition-duration) var(--builder-transition-timing);
+  contain: layout style;
+  will-change: max-width;
+}
+
+.preview-desktop {
+  max-width: 100%;
+  transition: max-width var(--builder-transition-duration) var(--builder-transition-timing);
+  contain: layout style;
+  will-change: max-width;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 320px) {
+  :root {
+    --builder-panel-width: 100%;
+    --builder-canvas-padding: 16px;
+    --builder-component-gap: 12px;
+    --builder-handle-size: 20px;
+  }
+  
+  .builder-sidebar,
+  .builder-properties {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    transform: translateX(-100%);
+  }
+  
+  .builder-sidebar.active,
+  .builder-properties.active {
+    transform: translateX(0);
+  }
+}
+
+@media (min-width: 321px) and (max-width: 768px) {
+  :root {
+    --builder-panel-width: 280px;
+    --builder-canvas-padding: 20px;
+    --builder-component-gap: 14px;
+    --builder-handle-size: 22px;
+  }
+}
+
+@media (min-width: 769px) {
+  :root {
+    --builder-panel-width: 320px;
+    --builder-canvas-padding: 24px;
+    --builder-component-gap: 16px;
+    --builder-handle-size: 24px;
+  }
+}
+
+/* Accessibility Enhancements */
+@media (prefers-reduced-motion: reduce) {
+  .builder-component,
+  .builder-dropzone,
+  .builder-handle,
+  .preview-mobile,
+  .preview-tablet,
+  .preview-desktop {
+    transition: none;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .builder-sidebar,
+  .builder-properties,
+  .builder-handle,
+  .builder-dropzone {
+    display: none;
+  }
+  
+  .builder-canvas {
+    padding: 0;
+    overflow: visible;
+  }
+  
+  .builder-component {
+    break-inside: avoid;
+    border: none;
+  }
+}
