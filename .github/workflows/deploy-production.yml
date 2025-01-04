@@ -1,0 +1,270 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**.md"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version"
+        required: true
+        type: string
+
+# Ensure only one deployment runs at a time
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+  DR_AWS_REGION: us-west-2
+  TERRAFORM_WORKING_DIR: infrastructure/terraform/environments/production
+  TERRAFORM_STATE_BUCKET: digital-presence-mvp-tfstate-prod
+  TERRAFORM_STATE_LOCK_TABLE: terraform-lock-prod
+  DOCKER_BUILDKIT: "1"
+  NODE_ENV: production
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  validate:
+    name: Validate Prerequisites
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Verify CI checks
+        run: |
+          if ! gh run list --workflow=backend-ci.yml --branch main --status completed --limit 1 | grep -q "success"; then
+            echo "Backend CI checks must pass before deployment"
+            exit 1
+          fi
+          if ! gh run list --workflow=frontend-ci.yml --branch main --status completed --limit 1 | grep -q "success"; then
+            echo "Frontend CI checks must pass before deployment"
+            exit 1
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  infrastructure:
+    name: Deploy Infrastructure
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: https://app.example.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: "1.5.0"
+          terraform_wrapper: false
+          
+      - name: Initialize Terraform
+        working-directory: ${{ env.TERRAFORM_WORKING_DIR }}
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ env.TERRAFORM_STATE_BUCKET }}" \
+            -backend-config="dynamodb_table=${{ env.TERRAFORM_STATE_LOCK_TABLE }}" \
+            -backend-config="encrypt=true"
+            
+      - name: Plan Terraform changes
+        working-directory: ${{ env.TERRAFORM_WORKING_DIR }}
+        run: terraform plan -out=tfplan
+        
+      - name: Apply Terraform changes
+        working-directory: ${{ env.TERRAFORM_WORKING_DIR }}
+        run: terraform apply -auto-approve tfplan
+
+  build-and-push:
+    name: Build and Push Images
+    needs: infrastructure
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        service: [frontend, backend]
+        
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          
+      - name: Login to Amazon ECR
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+          
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          version: latest
+          
+      - name: Build and push ${{ matrix.service }}
+        env:
+          ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --file infrastructure/docker/${{ matrix.service }}.Dockerfile \
+            --tag $ECR_REGISTRY/${{ matrix.service }}:$IMAGE_TAG \
+            --tag $ECR_REGISTRY/${{ matrix.service }}:latest \
+            --cache-from type=registry,ref=$ECR_REGISTRY/${{ matrix.service }}:latest \
+            --cache-to type=inline \
+            --push \
+            .
+            
+      - name: Scan container image
+        uses: snyk/actions/docker@v1
+        with:
+          image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ matrix.service }}:${{ github.sha }}
+          args: --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  deploy:
+    name: Deploy Services
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: production
+      url: https://app.example.com
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          
+      - name: Update ECS services
+        run: |
+          SERVICES=("frontend" "backend")
+          CLUSTER_NAME="digital-presence-mvp-production"
+          
+          for SERVICE in "${SERVICES[@]}"; do
+            # Register new task definition
+            TASK_DEF=$(aws ecs describe-task-definition \
+              --task-definition "$SERVICE" \
+              --query 'taskDefinition' \
+              --output json | \
+              jq '.containerDefinitions[0].image = "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/'$SERVICE':${{ github.sha }}"')
+            
+            NEW_TASK_DEF=$(aws ecs register-task-definition \
+              --family "$SERVICE" \
+              --requires-compatibilities FARGATE \
+              --network-mode awsvpc \
+              --cpu "1024" \
+              --memory "2048" \
+              --execution-role-arn "${{ secrets.ECS_EXECUTION_ROLE_ARN }}" \
+              --task-role-arn "${{ secrets.ECS_TASK_ROLE_ARN }}" \
+              --container-definitions "$TASK_DEF" \
+              --query 'taskDefinition.taskDefinitionArn' \
+              --output text)
+            
+            # Update service with new task definition
+            aws ecs update-service \
+              --cluster "$CLUSTER_NAME" \
+              --service "$SERVICE" \
+              --task-definition "$NEW_TASK_DEF" \
+              --force-new-deployment
+              
+            # Wait for service stability
+            aws ecs wait services-stable \
+              --cluster "$CLUSTER_NAME" \
+              --services "$SERVICE"
+          done
+
+      - name: Verify deployment health
+        run: |
+          MAX_RETRIES=30
+          RETRY_INTERVAL=10
+          
+          check_health() {
+            curl -sf https://app.example.com/health || return 1
+            curl -sf https://api.example.com/health || return 1
+          }
+          
+          for i in $(seq 1 $MAX_RETRIES); do
+            if check_health; then
+              echo "Health checks passed"
+              exit 0
+            fi
+            
+            echo "Attempt $i/$MAX_RETRIES: Health check failed, retrying in ${RETRY_INTERVAL}s..."
+            sleep $RETRY_INTERVAL
+          done
+          
+          echo "Health checks failed after $MAX_RETRIES attempts"
+          exit 1
+
+  notify:
+    name: Send Notifications
+    needs: [deploy]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Notify success
+        if: success()
+        run: |
+          curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "text": "✅ Production deployment successful\nVersion: ${{ github.sha }}\nDeployed by: ${{ github.actor }}"
+            }'
+            
+      - name: Notify failure
+        if: failure()
+        run: |
+          curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "text": "❌ Production deployment failed\nVersion: ${{ github.sha }}\nTriggered by: ${{ github.actor }}\nPlease check logs for details."
+            }'
+            
+      - name: Create PagerDuty incident on failure
+        if: failure()
+        run: |
+          curl -X POST https://events.pagerduty.com/v2/enqueue \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "routing_key": "${{ secrets.PAGERDUTY_ROUTING_KEY }}",
+              "event_action": "trigger",
+              "payload": {
+                "summary": "Production deployment failed",
+                "severity": "critical",
+                "source": "GitHub Actions",
+                "custom_details": {
+                  "version": "${{ github.sha }}",
+                  "triggered_by": "${{ github.actor }}",
+                  "workflow_run": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                }
+              }
+            }'
