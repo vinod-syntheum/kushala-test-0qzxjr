@@ -1,0 +1,71 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    
+    /* Type Checking */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    
+    /* Module Resolution */
+    "moduleResolution": "node",
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["*"],
+      "@config/*": ["config/*"],
+      "@controllers/*": ["api/controllers/*"],
+      "@middlewares/*": ["api/middlewares/*"],
+      "@models/*": ["models/*"],
+      "@services/*": ["services/*"],
+      "@utils/*": ["utils/*"],
+      "@validators/*": ["validators/*"],
+      "@interfaces/*": ["interfaces/*"],
+      "@constants/*": ["constants/*"],
+      "@types/*": ["types/*"]
+    },
+    
+    /* Experimental Decorators */
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    
+    /* Advanced */
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "sourceMap": true,
+    "incremental": true,
+    
+    /* Type Definitions */
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/types"
+    ]
+  },
+  "include": [
+    "src/**/*.ts",
+    "tests/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "coverage"
+  ],
+  "ts-node": {
+    "require": ["tsconfig-paths/register"]
+  }
+}
