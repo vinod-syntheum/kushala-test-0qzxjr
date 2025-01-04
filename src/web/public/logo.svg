@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" 
+     viewBox="0 0 200 50" 
+     preserveAspectRatio="xMidYMid meet"
+     width="200" 
+     height="50"
+     role="img"
+     aria-labelledby="logoTitle logoDesc"
+     xml:lang="en">
+    
+    <!-- Accessibility Labels -->
+    <title id="logoTitle">Platform Logo</title>
+    <desc id="logoDesc">Official logo of the restaurant website platform</desc>
+    
+    <!-- Definitions for reusable elements -->
+    <defs>
+        <!-- Color scheme gradients -->
+        <linearGradient id="brandGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#2D3748"/>
+            <stop offset="100%" style="stop-color:#3182CE"/>
+        </linearGradient>
+        
+        <!-- Dark mode gradient -->
+        <linearGradient id="darkModeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#FFFFFF"/>
+            <stop offset="100%" style="stop-color:#63B3ED"/>
+        </linearGradient>
+    </defs>
+    
+    <!-- Main Logo Group -->
+    <g id="logoGroup">
+        <!-- Plate Icon -->
+        <path d="M40 25c0 8.284-6.716 15-15 15-8.284 0-15-6.716-15-15 0-8.284 6.716-15 15-15 8.284 0 15 6.716 15 15z"
+              fill="url(#brandGradient)"
+              class="logo-primary"/>
+              
+        <!-- Fork and Knife -->
+        <path d="M28 15v20M22 15v20M34 15c0 0-3 2-3 5s3 5 3 5"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              fill="none"
+              class="logo-accent"/>
+              
+        <!-- Text Part -->
+        <text x="50" 
+              y="32" 
+              font-family="Inter, sans-serif" 
+              font-size="24" 
+              font-weight="600" 
+              fill="currentColor"
+              class="logo-text">
+            RESTO
+        </text>
+    </g>
+    
+    <!-- Style definitions -->
+    <style>
+        @media (prefers-color-scheme: dark) {
+            .logo-primary { fill: url(#darkModeGradient) }
+            .logo-accent { stroke: #63B3ED }
+            .logo-text { fill: #FFFFFF }
+        }
+        
+        @media screen and (max-width: 768px) {
+            .logo-text { font-size: 20px }
+        }
+        
+        @media screen and (max-width: 480px) {
+            .logo-text { font-size: 16px }
+        }
+        
+        .logo-primary { transition: fill 0.3s ease }
+        .logo-accent { transition: stroke 0.3s ease }
+        .logo-text { transition: fill 0.3s ease }
+    </style>
+</svg>
