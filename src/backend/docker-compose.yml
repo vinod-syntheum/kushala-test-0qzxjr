@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: ../infrastructure/docker/backend.Dockerfile
+      target: development
+      args:
+        NODE_ENV: development
+    ports:
+      - "3000:3000"  # API port
+      - "9229:9229"  # Debug port
+    volumes:
+      - ./src:/app/src:delegated
+      - ./package.json:/app/package.json
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./node_modules:/app/node_modules:delegated
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=restaurant_platform
+      - MONGO_HOST=mongodb
+      - MONGO_USER=admin
+      - MONGO_PASSWORD=password
+      - MONGO_DB=restaurant_content
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=password
+      - DEBUG=app:*
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - backend_network
+
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=restaurant_platform
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - backend_network
+
+  mongodb:
+    image: mongo:6.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_DATABASE=restaurant_content
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - backend_network
+
+  redis:
+    image: redis:7.0-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "password"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - backend_network
+
+volumes:
+  postgres_data:
+    driver: local
+  mongo_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  backend_network:
+    driver: bridge
+    internal: true
