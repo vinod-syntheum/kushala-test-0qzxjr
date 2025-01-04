@@ -1,0 +1,99 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths: ['src/backend/**']
+  pull_request:
+    branches: [main, develop]
+    paths: ['src/backend/**']
+
+env:
+  WORKING_DIRECTORY: src/backend
+  NODE_VERSION: '18.x'
+  CACHE_KEY_PREFIX: 'npm-cache-'
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/package-lock.json
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        id: npm-cache
+        with:
+          path: ${{ env.WORKING_DIRECTORY }}/node_modules
+          key: ${{ env.CACHE_KEY_PREFIX }}${{ hashFiles('${{ env.WORKING_DIRECTORY }}/package-lock.json') }}
+          restore-keys: |
+            ${{ env.CACHE_KEY_PREFIX }}
+
+      - name: Install dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          npm ci
+          npm audit
+          npm ls --depth=0
+
+      - name: Run linting
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          npm run lint
+        continue-on-error: false
+
+      - name: Run tests with coverage
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          npm run test:coverage
+          
+      - name: Upload test coverage
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: ${{ env.WORKING_DIRECTORY }}/coverage
+          retention-days: 14
+
+      - name: Build application
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          npm run clean
+          npm run build
+          
+      - name: Verify build artifacts
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "Build failed - dist directory not found"
+            exit 1
+          fi
+          
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: ${{ env.WORKING_DIRECTORY }}/dist
+          retention-days: 14
+
+      - name: Run build smoke test
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          node -e "require('./dist/server.js')"
+
+      - name: Security audit
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          npm audit
+        continue-on-error: true
